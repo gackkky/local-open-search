@@ -1,0 +1,45 @@
+version: '3'
+services:
+  opensearch:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: opensearch
+    environment:
+      - cluster.name=opensearch-cluster # クラスターの名前を設定
+      - node.name=opensearch # このコンテナで実行されるノードの名前を設定
+      - discovery.seed_hosts=opensearch # クラスターを探索する際に参照するノード
+      - cluster.initial_cluster_manager_nodes=opensearch # クラスターマネージャーとして機能する資格があるノード
+      - bootstrap.memory_lock=true # JVMヒープメモリのスワップを無効にする
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m" # システムRAMの少なくとも50%に相当するJVMヒープの最小および最大サイズを設定
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=Himitsuno-Password123 # デモのためハードコードしている。デモ設定を使用する際にデモ管理ユーザーのパスワードを設定、OpenSearch 2.12以降で必要。
+    ulimits:
+      memlock: # メモリロックのソフトリミットおよびハードリミットを無制限に設定
+        soft: -1
+        hard: -1
+      nofile: # opensearchユーザーの最大オープンファイル数を少なくとも65536に設定
+        soft: 65536
+        hard: 65536
+    volumes:
+      - opensearch-data:/usr/share/opensearch/data
+    ports:
+      - 9200:9200 # REST API
+      - 9600:9600 # Performance Analyzer
+    networks:
+      - opensearch-net
+
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:latest
+    container_name: opensearch-dashboards
+    ports:
+      - 5601:5601
+    environment:
+      OPENSEARCH_HOSTS: '["https://opensearch:9200"]' # OpenSearch Dashboards がクエリを実行する OpenSearch ノードを定義
+    networks:
+      - opensearch-net
+
+volumes:
+  opensearch-data:
+
+networks:
+  opensearch-net:
